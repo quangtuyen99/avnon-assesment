@@ -1,48 +1,97 @@
 <div class="container mx-auto p-4">
     <div class="mb-4 flex gap-4">
         <select [(ngModel)]="startMonth" (change)="updateDateRange(startMonth, endMonth)" class="border rounded p-2">
-            <option *ngFor="let month of months; let i = index" [value]="i">{{month}}</option>
+            <option *ngFor="let month of months(); let i = index" [value]="i">{{month}}</option>
         </select>
         <select [(ngModel)]="endMonth" (change)="updateDateRange(startMonth, endMonth)" class="border rounded p-2">
-            <option *ngFor="let month of months; let i = index" [value]="i">{{month}}</option>
+            <option *ngFor="let month of months(); let i = index" [value]="i">{{month}}</option>
         </select>
     </div>
 
     <table class="w-full border-collapse">
         <thead>
-            <tr>
-                <th class="border p-2">Category</th>
-                <th *ngFor="let month of months" class="border p-2">{{month}}</th>
-                <th class="border p-2">Actions</th>
+            <tr class="bg-gray-50">
+                <th class="border p-2 w-48">Category</th>
+                <th *ngFor="let month of months()" class="border p-2">{{month}}</th>
+                <th class="border p-2 w-20">Actions</th>
             </tr>
         </thead>
         <tbody>
-            <ng-container *ngFor="let category of budgetCategories">
-                <tr>
-                    <td class="border p-2">{{category.name}}</td>
-                    <td *ngFor="let month of months" 
-                        class="border p-2" 
-                        [class.bg-blue-100]="selectedCell?.categoryId === category.id && selectedCell?.month === month">
-                        <input
-                            type="number"
-                            [(ngModel)]="category.values[month]"
-                            (focus)="onCellSelect(category.id, month)"
-                            (contextmenu)="onRightClick($event, category.id, month)"
-                            class="w-full border-0 focus:outline-none"
-                        >
-                    </td>
-                    <td class="border p-2">
-                        <button (click)="deleteCategory(category.id)" class="text-red-500">Delete</button>
-                    </td>
-                </tr>
-            </ng-container>
+            <!-- Income Section -->
+            <tr class="bg-blue-50">
+                <td [attr.colspan]="months().length + 2" class="border p-2 font-semibold">Income</td>
+            </tr>
+            <tr *ngFor="let category of budgetCategories() | filterByType:'income'">
+                <td class="border p-2">{{category.name}}</td>
+                <td *ngFor="let month of months()" 
+                    class="border p-2" 
+                    [class.bg-blue-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === month">
+                    <input
+                        type="number"
+                        [value]="category.values[month]"
+                        (focus)="onCellSelect(category.id, month)"
+                        (input)="updateCellValue(category.id, month, $event)"
+                        (contextmenu)="onRightClick($event, category.id, month)"
+                        class="w-full border-0 focus:outline-none"
+                    >
+                </td>
+                <td class="border p-2">
+                    <button (click)="deleteCategory(category.id)" class="text-red-500">Delete</button>
+                </td>
+            </tr>
+
+            <!-- Expenses Section -->
+            <tr class="bg-red-50">
+                <td [attr.colspan]="months().length + 2" class="border p-2 font-semibold">Expenses</td>
+            </tr>
+            <tr *ngFor="let category of budgetCategories() | filterByType:'expense'">
+                <td class="border p-2">{{category.name}}</td>
+                <td *ngFor="let month of months()" 
+                    class="border p-2" 
+                    [class.bg-red-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === month">
+                    <input
+                        type="number"
+                        [value]="category.values[month]"
+                        (focus)="onCellSelect(category.id, month)"
+                        (input)="updateCellValue(category.id, month, $event)"
+                        (contextmenu)="onRightClick($event, category.id, month)"
+                        class="w-full border-0 focus:outline-none"
+                    >
+                </td>
+                <td class="border p-2">
+                    <button (click)="deleteCategory(category.id)" class="text-red-500">Delete</button>
+                </td>
+            </tr>
+
+            <!-- Totals -->
             <tr class="font-bold bg-gray-100">
                 <td class="border p-2">Total</td>
-                <td *ngFor="let entry of budgetEntries" class="border p-2">
+                <td *ngFor="let entry of budgetEntries()" class="border p-2"
+                    [class.text-green-600]="entry.profitLoss > 0"
+                    [class.text-red-600]="entry.profitLoss < 0">
                     {{entry.profitLoss | number:'1.2-2'}}
                 </td>
                 <td class="border p-2"></td>
             </tr>
         </tbody>
     </table>
+
+    <!-- Add Category Form -->
+    <div class="mt-4 flex gap-4">
+        <input 
+            type="text" 
+            [(ngModel)]="newCategoryName"
+            placeholder="New category name"
+            class="border rounded p-2"
+        >
+        <select [(ngModel)]="newCategoryType" class="border rounded p-2">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+        </select>
+        <button 
+            (click)="addCategory(newCategoryName, newCategoryType)"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Add Category
+        </button>
+    </div>
 </div>
