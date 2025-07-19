@@ -1,75 +1,191 @@
 <div class="container mx-auto p-4">
-    <div class="mb-4 flex gap-4">
-        <select [(ngModel)]="startMonth" (change)="updateDateRange(startMonth, endMonth)" class="border rounded p-2">
-            <option *ngFor="let month of months(); let i = index" [value]="i">{{month}}</option>
-        </select>
-        <select [(ngModel)]="endMonth" (change)="updateDateRange(startMonth, endMonth)" class="border rounded p-2">
-            <option *ngFor="let month of months(); let i = index" [value]="i">{{month}}</option>
-        </select>
-    </div>
-
+    <!-- Date Range Controls -->
+    <budget-header 
+        [startPeriod]="startPeriodSignal()"
+        [endPeriod]="endPeriodSignal()"
+        (periodChange)="updateDateRange($event.start, $event.end)">
+    </budget-header>
     <table class="w-full border-collapse">
         <thead>
-            <tr class="bg-gray-50">
-                <th class="border p-2 w-48">Category</th>
-                <th *ngFor="let month of months()" class="border p-2">{{month}}</th>
+            <tr class="bg-gray-100">
+                <th class="border p-2 w-64 text-left">Category</th>
+                <th *ngFor="let monthYear of months()" class="border p-2 text-right w-32">
+                    {{monthYear.month}} {{monthYear.year}}
+                </th>
                 <th class="border p-2 w-20">Actions</th>
             </tr>
         </thead>
         <tbody>
             <!-- Income Section -->
-            <tr class="bg-blue-50">
-                <td [attr.colspan]="months().length + 2" class="border p-2 font-semibold">Income</td>
+            <tr class="bg-blue-50 font-bold">
+                <td [attr.colspan]="months().length + 2" class="border p-2">Income</td>
             </tr>
-            <tr *ngFor="let category of budgetCategories() | filterByType:'income'">
-                <td class="border p-2">{{category.name}}</td>
-                <td *ngFor="let month of months()" 
+
+            <!-- General Income -->
+            <tr class="bg-blue-50/50">
+                <td [attr.colspan]="months().length + 2" class="border p-2 pl-4">General Income</td>
+            </tr>
+            <tr *ngFor="let category of budgetCategories() | filterByType:'income':'general'">
+                <td class="border p-2 pl-8">{{category.name}}</td>
+                <td *ngFor="let monthYear of months()" 
                     class="border p-2" 
-                    [class.bg-blue-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === month">
+                    [class.bg-blue-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === monthYear.month">
                     <input
                         type="number"
-                        [value]="category.values[month]"
-                        (focus)="onCellSelect(category.id, month)"
-                        (input)="updateCellValue(category.id, month, $event)"
-                        (contextmenu)="onRightClick($event, category.id, month)"
-                        class="w-full border-0 focus:outline-none"
+                        [attr.value]="category.values[monthYear.month]"
+                        (focus)="onCellSelect(category.id, monthYear.month)"
+                        (input)="updateCellValue(category.id, monthYear.month, $event)"
+                        (contextmenu)="onRightClick($event, category.id, monthYear.month)"
+                        class="w-full text-right border-0 focus:outline-none bg-transparent"
                     >
                 </td>
-                <td class="border p-2">
-                    <button (click)="deleteCategory(category.id)" class="text-red-500">Delete</button>
+                <td class="border p-2 text-center">
+                    <button (click)="deleteCategory(category.id)" class="text-red-500 hover:text-red-700">×</button>
                 </td>
+            </tr>
+            <tr class="bg-blue-100">
+                <td class="border p-2 pl-8 font-semibold">Sub Total</td>
+                <td *ngFor="let monthYear of months()" class="border p-2 text-right font-semibold">
+                    {{getSubTotal('income', 'general', monthYear.month) | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
+            </tr>
+
+            <!-- Other Income -->
+            <tr class="bg-blue-50/50">
+                <td [attr.colspan]="months().length + 2" class="border p-2 pl-4">Other Income</td>
+            </tr>
+            <tr *ngFor="let category of budgetCategories() | filterByType:'income':'other'">
+                <td class="border p-2 pl-8">{{category.name}}</td>
+                <td *ngFor="let monthYear of months()" 
+                    class="border p-2"
+                    [class.bg-blue-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === monthYear.month">
+                    <input
+                        type="number"
+                        [attr.value]="category.values[monthYear.month]"
+                        (focus)="onCellSelect(category.id, monthYear.month)"
+                        (input)="updateCellValue(category.id, monthYear.month, $event)"
+                        (contextmenu)="onRightClick($event, category.id, monthYear.month)"
+                        class="w-full text-right border-0 focus:outline-none bg-transparent"
+                    >
+                </td>
+                <td class="border p-2 text-center">
+                    <button (click)="deleteCategory(category.id)" class="text-red-500 hover:text-red-700">×</button>
+                </td>
+            </tr>
+            <tr class="bg-blue-100">
+                <td class="border p-2 pl-8 font-semibold">Sub Total</td>
+                <td *ngFor="let monthYear of months()" class="border p-2 text-right font-semibold">
+                    {{getSubTotal('income', 'other', monthYear.month) | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
+            </tr>
+
+            <!-- Income Total -->
+            <tr class="bg-blue-200 font-bold">
+                <td class="border p-2">Income Total</td>
+                <td *ngFor="let entry of budgetEntries()" class="border p-2 text-right">
+                    {{entry.income | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
             </tr>
 
             <!-- Expenses Section -->
-            <tr class="bg-red-50">
-                <td [attr.colspan]="months().length + 2" class="border p-2 font-semibold">Expenses</td>
-            </tr>
-            <tr *ngFor="let category of budgetCategories() | filterByType:'expense'">
-                <td class="border p-2">{{category.name}}</td>
-                <td *ngFor="let month of months()" 
-                    class="border p-2" 
-                    [class.bg-red-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === month">
-                    <input
-                        type="number"
-                        [value]="category.values[month]"
-                        (focus)="onCellSelect(category.id, month)"
-                        (input)="updateCellValue(category.id, month, $event)"
-                        (contextmenu)="onRightClick($event, category.id, month)"
-                        class="w-full border-0 focus:outline-none"
-                    >
-                </td>
-                <td class="border p-2">
-                    <button (click)="deleteCategory(category.id)" class="text-red-500">Delete</button>
-                </td>
+            <tr class="bg-red-50 font-bold">
+                <td [attr.colspan]="months().length + 2" class="border p-2">Expenses</td>
             </tr>
 
-            <!-- Totals -->
-            <tr class="font-bold bg-gray-100">
-                <td class="border p-2">Total</td>
-                <td *ngFor="let entry of budgetEntries()" class="border p-2"
+            <!-- Operational Expenses -->
+            <tr class="bg-red-50/50">
+                <td [attr.colspan]="months().length + 2" class="border p-2 pl-4">Operational Expenses</td>
+            </tr>
+            <tr *ngFor="let category of budgetCategories() | filterByType:'expense':'operational'">
+                <td class="border p-2 pl-8">{{category.name}}</td>
+                <td *ngFor="let monthYear of months()" 
+                    class="border p-2"
+                    [class.bg-red-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === monthYear.month">
+                    <input
+                        type="number"
+                        [attr.value]="category.values[monthYear.month]"
+                        (focus)="onCellSelect(category.id, monthYear.month)"
+                        (input)="updateCellValue(category.id, monthYear.month, $event)"
+                        (contextmenu)="onRightClick($event, category.id, monthYear.month)"
+                        class="w-full text-right border-0 focus:outline-none bg-transparent"
+                    >
+                </td>
+                <td class="border p-2 text-center">
+                    <button (click)="deleteCategory(category.id)" class="text-red-500 hover:text-red-700">×</button>
+                </td>
+            </tr>
+            <tr class="bg-red-100">
+                <td class="border p-2 pl-8 font-semibold">Sub Total</td>
+                <td *ngFor="let monthYear of months()" class="border p-2 text-right font-semibold">
+                    {{getSubTotal('expense', 'operational', monthYear.month) | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
+            </tr>
+
+            <!-- Salaries & Wages -->
+            <tr class="bg-red-50/50">
+                <td [attr.colspan]="months().length + 2" class="border p-2 pl-4">Salaries & Wages</td>
+            </tr>
+            <tr *ngFor="let category of budgetCategories() | filterByType:'expense':'salaries'">
+                <td class="border p-2 pl-8">{{category.name}}</td>
+                <td *ngFor="let monthYear of months()" 
+                    class="border p-2"
+                    [class.bg-red-100]="selectedCell()?.categoryId === category.id && selectedCell()?.month === monthYear.month">
+                    <input
+                        type="number"
+                        [attr.value]="category.values[monthYear.month]"
+                        (focus)="onCellSelect(category.id, monthYear.month)"
+                        (input)="updateCellValue(category.id, monthYear.month, $event)"
+                        (contextmenu)="onRightClick($event, category.id, monthYear.month)"
+                        class="w-full text-right border-0 focus:outline-none bg-transparent"
+                    >
+                </td>
+                <td class="border p-2 text-center">
+                    <button (click)="deleteCategory(category.id)" class="text-red-500 hover:text-red-700">×</button>
+                </td>
+            </tr>
+            <tr class="bg-red-100">
+                <td class="border p-2 pl-8 font-semibold">Sub Total</td>
+                <td *ngFor="let monthYear of months()" class="border p-2 text-right font-semibold">
+                    {{getSubTotal('expense', 'salaries', monthYear.month) | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
+            </tr>
+
+            <!-- Expense Total -->
+            <tr class="bg-red-200 font-bold">
+                <td class="border p-2">Expense Total</td>
+                <td *ngFor="let entry of budgetEntries()" class="border p-2 text-right">
+                    {{entry.expense | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
+            </tr>
+
+            <!-- Final Totals -->
+            <tr class="bg-gray-200 font-bold">
+                <td class="border p-2">Profit/Loss</td>
+                <td *ngFor="let entry of budgetEntries()" 
+                    class="border p-2 text-right"
                     [class.text-green-600]="entry.profitLoss > 0"
                     [class.text-red-600]="entry.profitLoss < 0">
                     {{entry.profitLoss | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
+            </tr>
+            <tr class="bg-gray-100">
+                <td class="border p-2">Opening Balance</td>
+                <td *ngFor="let monthYear of months()" class="border p-2 text-right">
+                    {{getPreviousBalance(monthYear.month) | number:'1.2-2'}}
+                </td>
+                <td class="border p-2"></td>
+            </tr>
+            <tr class="bg-gray-200 font-bold">
+                <td class="border p-2">Closing Balance</td>
+                <td *ngFor="let monthYear of months()" class="border p-2 text-right">
+                    {{getClosingBalance(monthYear.month) | number:'1.2-2'}}
                 </td>
                 <td class="border p-2"></td>
             </tr>
@@ -77,21 +193,13 @@
     </table>
 
     <!-- Add Category Form -->
-    <div class="mt-4 flex gap-4">
-        <input 
-            type="text" 
-            [(ngModel)]="newCategoryName"
-            placeholder="New category name"
-            class="border rounded p-2"
-        >
-        <select [(ngModel)]="newCategoryType" class="border rounded p-2">
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
-        </select>
-        <button 
-            (click)="addCategory(newCategoryName, newCategoryType)"
-            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            Add Category
-        </button>
-    </div>
+    <budget-category-form
+      [categoryName]="newCategoryName()"
+      [categoryType]="newCategoryType()"
+      [categoryParent]="newCategoryParent()"
+      (categoryNameChange)="newCategoryName.set($event)"
+      (categoryTypeChange)="newCategoryType.set($event)"
+      (categoryParentChange)="newCategoryParent.set($event)"
+      (addCategory)="addCategory($event.name, $event.type, $event.parent)">
+  </budget-category-form>
 </div>

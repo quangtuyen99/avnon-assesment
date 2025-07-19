@@ -2,6 +2,6 @@ export interface BudgetCategory {
     id: string;
     name: string;
     type: 'income' | 'expense';
-    parentCategory?: string;
+    parent: 'general' | 'other' | 'operational' | 'salaries';
     values: { [month: string]: number };
 }

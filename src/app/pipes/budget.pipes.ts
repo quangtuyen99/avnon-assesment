@@ -6,7 +6,10 @@ import { BudgetCategory } from '../models/budget-category.model';
     standalone: true
 })
 export class FilterByTypePipe implements PipeTransform {
-    transform(categories: BudgetCategory[], type: 'income' | 'expense'): BudgetCategory[] {
-        return categories.filter(category => category.type === type);
+    transform(categories: BudgetCategory[], type: 'income' | 'expense', parent?: string): BudgetCategory[] {
+        return categories.filter(category => {
+            const typeMatch = category.type === type;
+            return parent ? typeMatch && category.parent === parent : typeMatch;
+        });
     }
 }
